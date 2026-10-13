@@ -1,0 +1,38 @@
+{
+  "scenario": "Sample C — Arithmetic Mismatch Invoice",
+  "supplierName": "Quantum Logistics India Ltd",
+  "supplierTaxId": "29AABCQ8819G1Z2",
+  "invoiceNumber": "QL-2026-8819",
+  "invoiceDate": "2026-10-02",
+  "dueDate": "2026-10-22",
+  "currencyCode": "INR",
+  "subtotal": 25000.00,
+  "taxAmount": 4500.00,
+  "discountAmount": 1000.00,
+  "additionalCharges": 500.00,
+  "totalAmount": 32500.00,
+  "category": "Logistics",
+  "documentType": "INVOICE",
+  "lineItems": [
+    {
+      "description": "Interstate Freight Dispatch (Bengaluru - Mumbai)",
+      "quantity": 2,
+      "unitPrice": 10000.00,
+      "lineTotal": 20000.00
+    },
+    {
+      "description": "Cold-chain Temperature Monitoring Pack",
+      "quantity": 1,
+      "unitPrice": 5000.00,
+      "lineTotal": 5000.00
+    }
+  ],
+  "expectedOutcome": {
+    "validationStatus": "Needs Review",
+    "blockingFindings": 1,
+    "findingType": "ARITHMETIC_MISMATCH",
+    "formula": "Subtotal (25,000) - Discount (1,000) + Tax (4,500) + Charges (500) = 29,000.00",
+    "observedTotal": 32500.00,
+    "unaccountedDelta": 3500.00
+  }
+}

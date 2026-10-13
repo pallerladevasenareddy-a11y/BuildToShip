@@ -1,0 +1,30 @@
+{
+  "scenario": "Sample B — Possible Duplicate Invoice",
+  "supplierName": "Apex Cloud Solutions Pvt Ltd",
+  "supplierTaxId": "27AAPCA1234F1Z8",
+  "invoiceNumber": "INV-2026-1042",
+  "invoiceDate": "2026-09-15",
+  "dueDate": "2026-10-15",
+  "currencyCode": "INR",
+  "subtotal": 45000.00,
+  "taxAmount": 8100.00,
+  "discountAmount": 0.00,
+  "additionalCharges": 0.00,
+  "totalAmount": 53100.00,
+  "category": "Software",
+  "documentType": "INVOICE",
+  "lineItems": [
+    {
+      "description": "Cloud Infrastructure Tier 3 (Sep 2026)",
+      "quantity": 1,
+      "unitPrice": 35000.00,
+      "lineTotal": 35000.00
+    }
+  ],
+  "expectedOutcome": {
+    "validationStatus": "Needs Review",
+    "blockingFindings": 1,
+    "findingType": "DUPLICATE_CANDIDATE",
+    "explanation": "Normalized supplier name and invoice number INV-2026-1042 collide with historical invoice processed on 2026-09-15."
+  }
+}

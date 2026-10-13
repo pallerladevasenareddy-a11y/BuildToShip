@@ -1,0 +1,29 @@
+{
+  "name": "docusense-ai",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DocuSense AI — Intelligent Invoice Auditor MVP",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"npm run --prefix server dev\" \"npm run --prefix client dev\"",
+    "dev:server": "npm run --prefix server dev",
+    "dev:client": "npm run --prefix client dev",
+    "build": "npm run --prefix client build",
+    "test": "npm run --prefix server test",
+    "test:coverage": "npm run --prefix server test:coverage"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "invoice-auditor",
+    "document-processing",
+    "idp",
+    "gemini",
+    "audit",
+    "fintech"
+  ],
+  "author": "DocuSense AI Team",
+  "license": "MIT"
+}

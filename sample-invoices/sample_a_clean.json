@@ -1,0 +1,35 @@
+{
+  "scenario": "Sample A — Clean Verified Invoice",
+  "supplierName": "Apex Cloud Solutions Pvt Ltd",
+  "supplierTaxId": "27AAPCA1234F1Z8",
+  "invoiceNumber": "INV-2026-9042",
+  "invoiceDate": "2026-10-10",
+  "dueDate": "2026-11-10",
+  "currencyCode": "INR",
+  "subtotal": 45000.00,
+  "taxAmount": 8100.00,
+  "discountAmount": 0.00,
+  "additionalCharges": 0.00,
+  "totalAmount": 53100.00,
+  "category": "Software",
+  "documentType": "INVOICE",
+  "lineItems": [
+    {
+      "description": "Cloud Infrastructure Tier 3 (Oct 2026)",
+      "quantity": 1,
+      "unitPrice": 35000.00,
+      "lineTotal": 35000.00
+    },
+    {
+      "description": "Managed Kubernetes Cluster Support",
+      "quantity": 1,
+      "unitPrice": 10000.00,
+      "lineTotal": 10000.00
+    }
+  ],
+  "expectedOutcome": {
+    "validationStatus": "Verified",
+    "blockingFindings": 0,
+    "arithmeticCheck": "PASSED (45000 - 0 + 8100 + 0 = 53100)"
+  }
+}
