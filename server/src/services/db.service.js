@@ -430,7 +430,12 @@ export const db = {
   // --- Invoices ---
   async getInvoicesByUser(userId, { search, status, supplier, category, limit = 50, offset = 0 } = {}) {
     if (supabase) {
-      let query = supabase.from('invoices').select('*, invoice_findings(*)', { count: 'exact' }).eq('user_id', userId);
+      let query = supabase
+  	.from('invoices')
+  	.select('*, invoice_findings!invoice_findings_invoice_id_fkey(*)', {
+    	count: 'exact',
+  })
+  .eq('user_id', userId);
       if (status && status !== 'ALL') query = query.eq('review_status', status);
       if (supplier) query = query.ilike('supplier_name', `%${supplier}%`);
       if (category) query = query.eq('category', category);
@@ -472,7 +477,7 @@ export const db = {
     if (supabase) {
       const { data, error } = await supabase
         .from('invoices')
-        .select('*, invoice_line_items(*), invoice_findings(*), audit_logs(*)')
+        .select('*, invoice_line_items(*), invoice_findings!invoice_findings_invoice_id_fkey(*), audit_logs(*)')
         .eq('id', invoiceId)
         .eq('user_id', userId)
         .maybeSingle();
