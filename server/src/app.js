@@ -20,10 +20,36 @@ app.use(
   })
 );
 
-// CORS configuration
+// CORS configuration: support local development, production Vercel frontend, and env.FRONTEND_URL
+const allowedOrigins = [
+  'https://build-to-ship-three.vercel.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+if (env.FRONTEND_URL) {
+  env.FRONTEND_URL.split(',').forEach((url) => {
+    const trimmed = url.trim().replace(/\/$/, '');
+    if (trimmed && !allowedOrigins.includes(trimmed)) {
+      allowedOrigins.push(trimmed);
+    }
+  });
+}
+
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow non-browser requests (Postman, server-to-server, health checks)
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   })
 );

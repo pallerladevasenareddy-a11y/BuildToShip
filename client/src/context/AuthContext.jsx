@@ -144,6 +144,19 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // Dynamic origin resolution for OAuth redirect URL
+  const getOAuthRedirectUrl = () => {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      const origin = window.location.origin.replace(/\/$/, '');
+      return `${origin}/auth/callback`;
+    }
+    const envUrl = import.meta.env.VITE_SITE_URL || import.meta.env.VITE_FRONTEND_URL;
+    if (envUrl) {
+      return `${envUrl.replace(/\/$/, '')}/auth/callback`;
+    }
+    return 'http://localhost:5173/auth/callback';
+  };
+
   // Google OAuth Sign-in through Supabase Auth
   const signInWithGoogle = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -152,7 +165,8 @@ export function AuthProvider({ children }) {
       );
     }
 
-    const callbackUrl = `${window.location.origin}/auth/callback`;
+    const callbackUrl = getOAuthRedirectUrl();
+    console.log('[DocuSense Auth] Initiating Google OAuth with redirect destination:', callbackUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -219,12 +233,15 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
+        setLoading,
         isSupabaseConfigured,
         signInWithGoogle,
         login,
         register,
         logout,
+        getOAuthRedirectUrl,
       }}
     >
       {children}

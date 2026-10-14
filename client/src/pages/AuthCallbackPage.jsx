@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
 import api from '../services/api';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
+  const { setUser, setLoading } = useAuth();
   const [errorMessage, setErrorMessage] = useState('');
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     let isMounted = true;
+    let authSubscription = null;
 
     async function handleAuthCallback() {
       try {
@@ -29,7 +33,7 @@ export function AuthCallbackPage() {
               ? 'Google sign-in was cancelled or access was denied.'
               : 'Failed to authenticate with Google. Please try again.');
           if (isMounted) setErrorMessage(userMsg);
-          setTimeout(() => {
+          timeoutRef.current = setTimeout(() => {
             if (isMounted) {
               navigate(`/login?error=${encodeURIComponent(userMsg)}`, { replace: true });
             }
@@ -40,7 +44,7 @@ export function AuthCallbackPage() {
         if (!supabase) {
           const msg = 'Supabase client is not configured.';
           if (isMounted) setErrorMessage(msg);
-          setTimeout(() => {
+          timeoutRef.current = setTimeout(() => {
             if (isMounted) {
               navigate(`/login?error=${encodeURIComponent(msg)}`, { replace: true });
             }
@@ -48,14 +52,32 @@ export function AuthCallbackPage() {
           return;
         }
 
-        // 2. Retrieve session from Supabase (detectSessionInUrl processes the tokens)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // 2. Retrieve session from Supabase (detectSessionInUrl processes tokens/hashes)
+        let activeSession = null;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          throw sessionError;
+          console.warn('[DocuSense Auth] Supabase getSession warning:', sessionError.message);
+        }
+        activeSession = sessionData?.session;
+
+        // If PKCE authorization code is present in query and getSession hasn't captured it yet
+        const code = searchParams.get('code');
+        if (!activeSession && code) {
+          try {
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (!exchangeError && exchangeData?.session) {
+              activeSession = exchangeData.session;
+            } else if (exchangeError) {
+              console.warn('[DocuSense Auth] Code exchange notice:', exchangeError.message);
+            }
+          } catch (exchangeErr) {
+            console.warn('[DocuSense Auth] exchangeCodeForSession exception:', exchangeErr.message);
+          }
         }
 
-        if (session && session.user) {
+        if (activeSession && activeSession.user) {
+          const session = activeSession;
           const meta = session.user.user_metadata || {};
           const mappedUser = {
             id: session.user.id,
@@ -69,14 +91,17 @@ export function AuthCallbackPage() {
           localStorage.setItem('docusense_token', session.access_token);
           localStorage.setItem('docusense_user', JSON.stringify(mappedUser));
 
+          // Immediately update AuthContext state so PrivateRoute grants access
+          if (setUser) setUser(mappedUser);
+          if (setLoading) setLoading(false);
+
           // 3. Proactively sync profile and scope with backend
           try {
             const syncRes = await api.post('/auth/sync', {});
             if (syncRes.data?.user) {
-              localStorage.setItem(
-                'docusense_user',
-                JSON.stringify({ ...mappedUser, ...syncRes.data.user })
-              );
+              const fullUser = { ...mappedUser, ...syncRes.data.user };
+              localStorage.setItem('docusense_user', JSON.stringify(fullUser));
+              if (setUser) setUser(fullUser);
             }
           } catch (syncErr) {
             console.warn('[DocuSense] Background profile synchronization warning:', syncErr.message);
@@ -104,8 +129,16 @@ export function AuthCallbackPage() {
             localStorage.setItem('docusense_token', newSession.access_token);
             localStorage.setItem('docusense_user', JSON.stringify(mappedUser));
 
+            if (setUser) setUser(mappedUser);
+            if (setLoading) setLoading(false);
+
             try {
-              await api.post('/auth/sync', {});
+              const syncRes = await api.post('/auth/sync', {});
+              if (syncRes.data?.user && setUser) {
+                const fullUser = { ...mappedUser, ...syncRes.data.user };
+                localStorage.setItem('docusense_user', JSON.stringify(fullUser));
+                setUser(fullUser);
+              }
             } catch {
               // Non-blocking
             }
@@ -114,21 +147,22 @@ export function AuthCallbackPage() {
             navigate('/', { replace: true });
           }
         });
+        authSubscription = subscription;
 
-        // Timeout fallback if no session is captured within 5 seconds
-        setTimeout(() => {
+        // Timeout fallback if no session is captured within 6 seconds
+        timeoutRef.current = setTimeout(() => {
           if (isMounted) {
-            subscription.unsubscribe();
+            if (authSubscription) authSubscription.unsubscribe();
             navigate('/login?error=Session%20establishment%20timed%20out.%20Please%20try%20logging%20in%20again.', {
               replace: true,
             });
           }
-        }, 5000);
+        }, 6000);
       } catch (err) {
         console.error('[DocuSense Auth Callback Exception]:', err);
         const friendly = err.message || 'Authentication failed. Please try again.';
         if (isMounted) setErrorMessage(friendly);
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           if (isMounted) {
             navigate(`/login?error=${encodeURIComponent(friendly)}`, { replace: true });
           }
@@ -140,8 +174,14 @@ export function AuthCallbackPage() {
 
     return () => {
       isMounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [navigate]);
+  }, [navigate, setUser, setLoading]);
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-4">

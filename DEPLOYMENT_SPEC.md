@@ -41,11 +41,11 @@
    - Application Type: **Web application**
    - Name: `DocuSense Supabase Auth`
    - Authorized JavaScript origins:
-     - `https://<project-ref>.supabase.co`
+     - `https://xupycxuwllrukatpcjwz.supabase.co`
+     - `https://build-to-ship-three.vercel.app`
      - `http://localhost:5173`
-     - `https://<your-app>.vercel.app`
    - Authorized redirect URIs:
-     - `https://<project-ref>.supabase.co/auth/v1/callback`
+     - `https://xupycxuwllrukatpcjwz.supabase.co/auth/v1/callback`
 4. Copy the generated **Client ID** and **Client Secret**.
 
 ### B. Supabase Dashboard:
@@ -54,12 +54,15 @@
    - Paste **Client ID** and **Client Secret** from Google Cloud Console.
    - Save changes.
 2. Navigate to **Authentication > URL Configuration**:
-   - **Site URL**: `http://localhost:5173` (or production Vercel domain `https://<your-app>.vercel.app`)
-   - **Redirect URLs** (Add permitted redirect URLs):
+   - **Site URL**: `https://build-to-ship-three.vercel.app`
+     > **CRITICAL**: Supabase defaults `Site URL` to `http://localhost:3000`. If this is left as default or points to localhost, any OAuth login where the redirect URL does not match an allowed domain will automatically fall back to `http://localhost:3000`. Set this to `https://build-to-ship-three.vercel.app`.
+   - **Redirect URLs** (Add all permitted redirect URLs):
+     - `https://build-to-ship-three.vercel.app/auth/callback`
+     - `https://build-to-ship-three.vercel.app/**`
+     - `https://build-to-ship-three.vercel.app`
      - `http://localhost:5173/auth/callback`
+     - `http://localhost:5173/**`
      - `http://localhost:5173`
-     - `https://<your-app>.vercel.app/auth/callback`
-     - `https://<your-app>.vercel.app`
 
 ## 4. Production Verification Checklist
 - [ ] Database schema executed in Supabase SQL editor (including `profiles` table with `avatar_url` and Supabase Auth trigger).

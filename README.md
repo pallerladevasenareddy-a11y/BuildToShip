@@ -256,10 +256,17 @@ To enable live AI extraction:
 DocuSense AI supports official Google OAuth 2.0 through Supabase Auth:
 1. **Google Cloud Console**:
    - Create an OAuth 2.0 Web Client ID.
-   - Set Authorized Redirect URI to: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+   - Set Authorized JavaScript Origins to: `https://xupycxuwllrukatpcjwz.supabase.co`, `https://build-to-ship-three.vercel.app`, and `http://localhost:5173`.
+   - Set Authorized Redirect URI to: `https://xupycxuwllrukatpcjwz.supabase.co/auth/v1/callback`
 2. **Supabase Dashboard**:
    - Under Authentication > Providers > Google, toggle ON and input your Google Client ID & Secret.
-   - Under Authentication > URL Configuration, add permitted redirect URLs (`http://localhost:5173/auth/callback` and `https://<your-vercel-domain>.vercel.app/auth/callback`).
+   - Under Authentication > URL Configuration:
+     - **Site URL**: `https://build-to-ship-three.vercel.app` *(Do NOT leave as default `http://localhost:3000`)*
+     - **Redirect URLs**:
+       - `https://build-to-ship-three.vercel.app/auth/callback`
+       - `https://build-to-ship-three.vercel.app/**`
+       - `http://localhost:5173/auth/callback`
+       - `http://localhost:5173/**`
 3. **Environment Variables**:
    - **Client (`client/.env`)**: `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
    - **Server (`server/.env`)**: `PORT`, `FRONTEND_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `GEMINI_API_KEY`.
