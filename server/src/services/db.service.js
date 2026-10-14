@@ -534,7 +534,17 @@ export const db = {
       if (invError) throw invError;
 
       if (lineItems.length > 0) {
-        const itemsWithId = lineItems.map((li) => ({ ...li, id: uuidv4(), invoice_id: id }));
+        
+	const itemsWithId = lineItems.map((li) => ({
+  	id: uuidv4(),
+  	invoice_id: id,
+  	description: li.description || 'Line Item',
+  	quantity: li.quantity ?? 1,
+ 	unit_price: li.unitPrice ?? li.unit_price ?? 0,
+  	line_total: li.lineTotal ?? li.line_total ?? 0,
+  	currency_code: li.currency_code || invoiceData.currency_code || 'INR',
+	}));
+
         const { error: liError } = await supabase.from('invoice_line_items').insert(itemsWithId);
         if (liError) throw liError;
       }
