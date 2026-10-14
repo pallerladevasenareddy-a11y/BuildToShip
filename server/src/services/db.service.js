@@ -606,28 +606,49 @@ export const db = {
   },
 
   // --- Findings ---
+  
   async getFindingsByUser(userId, status = 'OPEN') {
     if (supabase) {
       let query = supabase
         .from('invoice_findings')
-        .select('*, invoice:invoices(invoice_number, supplier_name, total_amount, currency_code, original_filename)')
+        .select(`
+          *,
+          invoice:invoices!invoice_findings_invoice_id_fkey(
+            invoice_number,
+            supplier_name,
+            total_amount,
+            currency_code,
+            original_filename
+          )
+        `)
         .eq('user_id', userId);
+
       if (status && status !== 'ALL') {
         query = query.eq('status', status);
       }
+
       query = query.order('created_at', { ascending: false });
+
       const { data, error } = await query;
+
       if (error) throw error;
+
       return data || [];
     }
 
-    let findings = localStore.invoice_findings.filter((f) => f.user_id === userId);
+    let findings = localStore.invoice_findings.filter(
+      (f) => f.user_id === userId
+    );
+
     if (status && status !== 'ALL') {
       findings = findings.filter((f) => f.status === status);
     }
 
     return findings.map((f) => {
-      const inv = localStore.invoices.find((i) => i.id === f.invoice_id);
+      const inv = localStore.invoices.find(
+        (i) => i.id === f.invoice_id
+      );
+
       return {
         ...f,
         invoice: inv
