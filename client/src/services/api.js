@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -19,9 +20,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+      if (
+        !window.location.pathname.includes('/login') &&
+        !window.location.pathname.includes('/register') &&
+        !window.location.pathname.includes('/auth/callback')
+      ) {
         localStorage.removeItem('docusense_token');
         localStorage.removeItem('docusense_user');
+        if (supabase) {
+          supabase.auth.signOut().catch(() => {});
+        }
         window.location.href = '/login';
       }
     }

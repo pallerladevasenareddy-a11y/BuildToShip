@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { GoogleSignInButton } from '../components/ui/GoogleSignInButton';
 
 export function RegisterPage() {
   const [fullName, setFullName] = useState('');
@@ -44,7 +45,7 @@ export function RegisterPage() {
       <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent/20 via-accent to-accent/20" />
 
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent mx-auto mb-4">
             <ShieldCheck className="w-7 h-7" />
           </div>
@@ -53,11 +54,26 @@ export function RegisterPage() {
         </div>
 
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-state-error/15 border border-state-error/30 text-state-error text-xs flex items-center gap-2">
+          <div className="mb-5 p-3 rounded-lg bg-state-error/15 border border-state-error/30 text-state-error text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
+
+        {/* Google OAuth Quick Sign-Up */}
+        <div className="mb-5">
+          <GoogleSignInButton onError={(msg) => setError(msg)} label="Continue with Google" />
+        </div>
+
+        {/* Divider */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+            <span className="bg-card px-3 text-mutedText font-semibold">Or register with email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

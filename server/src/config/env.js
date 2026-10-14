@@ -11,6 +11,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   SUPABASE_URL: z.string().optional().default(''),
+  SUPABASE_ANON_KEY: z.string().optional().default(''),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional().default(''),
   SUPABASE_STORAGE_BUCKET: z.string().default('invoice-documents'),
   MAX_UPLOAD_SIZE_MB: z.string().default('10').transform((v) => parseInt(v, 10)),
@@ -29,8 +30,8 @@ export const isLiveGeminiAvailable = Boolean(env.GEMINI_API_KEY && env.GEMINI_AP
 export const isLiveSupabaseAvailable = Boolean(
   env.SUPABASE_URL && 
   env.SUPABASE_URL.trim() !== '' && 
-  env.SUPABASE_SERVICE_ROLE_KEY && 
-  env.SUPABASE_SERVICE_ROLE_KEY.trim() !== ''
+  ((env.SUPABASE_SERVICE_ROLE_KEY && env.SUPABASE_SERVICE_ROLE_KEY.trim() !== '') ||
+   (env.SUPABASE_ANON_KEY && env.SUPABASE_ANON_KEY.trim() !== ''))
 );
 
 if (!isLiveGeminiAvailable) {

@@ -39,7 +39,24 @@ export function Topbar() {
       {/* Right: User Profile & Actions */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 pr-2 border-r border-border">
-          <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center text-accent text-sm font-semibold">
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.fullName || 'User'}
+              referrerPolicy="no-referrer"
+              className="w-8 h-8 rounded-full border border-border object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextElementSibling) {
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div
+            style={{ display: user?.avatarUrl ? 'none' : 'flex' }}
+            className="w-8 h-8 rounded-full bg-surface border border-border items-center justify-center text-accent text-sm font-semibold"
+          >
             {user?.fullName ? user.fullName[0].toUpperCase() : 'U'}
           </div>
           <div className="text-left hidden sm:block">

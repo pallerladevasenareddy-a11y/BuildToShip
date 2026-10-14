@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { UploadPage } from './pages/UploadPage';
 import { InvoicesPage } from './pages/InvoicesPage';
@@ -35,6 +36,7 @@ export function App() {
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
           {/* Protected Application Routes */}
           <Route

@@ -5,7 +5,8 @@ let supabaseClient = null;
 
 if (isLiveSupabaseAvailable) {
   try {
-    supabaseClient = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY;
+    supabaseClient = createClient(env.SUPABASE_URL, key, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,

@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255), -- NULL for OAuth / Google Sign-In users
+    avatar_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -172,3 +173,44 @@ CREATE POLICY "Users can only access their own findings"
 CREATE POLICY "Users can only read their own audit logs"
     ON audit_logs FOR SELECT
     USING (user_id = auth.uid());
+
+-- ----------------------------------------------------------------------------
+-- 7. Supabase Auth Automatic Profile Provisioning & Migration Helper
+-- ----------------------------------------------------------------------------
+-- Migration commands for existing databases:
+-- ALTER TABLE profiles ALTER COLUMN password_hash DROP NOT NULL;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- Auto-provision or update public.profiles whenever an auth.users record is created/updated (e.g., via Google OAuth)
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, full_name, email, avatar_url, updated_at)
+    VALUES (
+        NEW.id,
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            NEW.raw_user_meta_data->>'name',
+            split_part(NEW.email, '@', 1)
+        ),
+        NEW.email,
+        COALESCE(
+            NEW.raw_user_meta_data->>'avatar_url',
+            NEW.raw_user_meta_data->>'picture'
+        ),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
+        updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger firing on auth.users insert/update
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT OR UPDATE ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_auth_user();

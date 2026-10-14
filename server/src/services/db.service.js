@@ -14,6 +14,7 @@ const localStore = {
       full_name: 'Arjun Mehta',
       email: 'demo@docusense.ai',
       password_hash: DEMO_PASSWORD_HASH,
+      avatar_url: null,
       created_at: new Date('2026-09-01T10:00:00Z').toISOString(),
       updated_at: new Date('2026-09-01T10:00:00Z').toISOString(),
     },
@@ -254,12 +255,13 @@ export const db = {
     return localStore.profiles.find((p) => p.id === id) || null;
   },
 
-  async createProfile({ full_name, email, password_hash }) {
+  async createProfile({ full_name, email, password_hash, avatar_url = null }) {
     const newProfile = {
       id: uuidv4(),
       full_name,
       email: email.toLowerCase().trim(),
-      password_hash,
+      password_hash: password_hash || null,
+      avatar_url: avatar_url || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -270,6 +272,157 @@ export const db = {
       return data;
     }
 
+    localStore.profiles.push(newProfile);
+    return newProfile;
+  },
+
+  async syncProfileId(oldId, newId, { full_name, avatar_url } = {}) {
+    if (oldId === newId) {
+      return this.findProfileById(newId);
+    }
+
+    if (supabase) {
+      // 1. Fetch old profile data
+      const { data: oldProfile } = await supabase.from('profiles').select('*').eq('id', oldId).maybeSingle();
+      if (!oldProfile) {
+        return this.upsertProfileFromAuthUser({ id: newId, email: '', full_name, avatar_url });
+      }
+
+      // 2. Check if new profile already exists
+      const { data: existingNew } = await supabase.from('profiles').select('*').eq('id', newId).maybeSingle();
+      let targetProfile = existingNew;
+
+      if (!targetProfile) {
+        const { data: created, error: insertErr } = await supabase.from('profiles').insert({
+          id: newId,
+          full_name: full_name || oldProfile.full_name,
+          email: oldProfile.email,
+          avatar_url: avatar_url || oldProfile.avatar_url || null,
+          password_hash: oldProfile.password_hash || null,
+          created_at: oldProfile.created_at,
+          updated_at: new Date().toISOString(),
+        }).select().single();
+
+        if (insertErr) throw insertErr;
+        targetProfile = created;
+      }
+
+      // 3. Migrate invoices and findings to the new Supabase Auth UID
+      try {
+        await supabase.from('invoices').update({ user_id: newId }).eq('user_id', oldId);
+        await supabase.from('invoice_findings').update({ user_id: newId }).eq('user_id', oldId);
+        await supabase.from('profiles').delete().eq('id', oldId);
+      } catch (migrationErr) {
+        console.warn('[DocuSense] Profile migration note:', migrationErr.message);
+      }
+
+      return targetProfile;
+    }
+
+    // In-memory store
+    const oldP = localStore.profiles.find((p) => p.id === oldId);
+    if (oldP) {
+      oldP.id = newId;
+      if (full_name) oldP.full_name = full_name;
+      if (avatar_url) oldP.avatar_url = avatar_url;
+      oldP.updated_at = new Date().toISOString();
+      localStore.invoices.forEach((inv) => { if (inv.user_id === oldId) inv.user_id = newId; });
+      localStore.invoice_findings.forEach((f) => { if (f.user_id === oldId) f.user_id = newId; });
+      localStore.audit_logs.forEach((a) => { if (a.user_id === oldId) a.user_id = newId; });
+      return oldP;
+    }
+
+    return this.upsertProfileFromAuthUser({ id: newId, email: '', full_name, avatar_url });
+  },
+
+  async upsertProfileFromAuthUser({ id, email, full_name, avatar_url }) {
+    const normalized = (email || '').toLowerCase().trim();
+
+    if (supabase) {
+      // Check if profile exists by ID
+      const { data: existingById } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (existingById) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: full_name || existingById.full_name,
+            avatar_url: avatar_url || existingById.avatar_url,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) {
+          console.warn('[DocuSense] Profile update notice:', error.message);
+          return existingById;
+        }
+        return data;
+      }
+
+      // Check if profile exists by email (link if found)
+      if (normalized) {
+        const { data: existingByEmail } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', normalized)
+          .maybeSingle();
+
+        if (existingByEmail) {
+          return await this.syncProfileId(existingByEmail.id, id, { full_name, avatar_url });
+        }
+      }
+
+      // Insert new profile
+      const newProfile = {
+        id,
+        full_name: full_name || (normalized ? normalized.split('@')[0] : 'User'),
+        email: normalized,
+        avatar_url: avatar_url || null,
+        password_hash: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase.from('profiles').insert(newProfile).select().single();
+      if (error) {
+        console.warn('[DocuSense] Error inserting profile from auth user:', error.message);
+        const { data: retry } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+        if (retry) return retry;
+        throw error;
+      }
+      return data;
+    }
+
+    // In-memory localStore fallback
+    let profile = localStore.profiles.find((p) => p.id === id);
+    if (profile) {
+      if (full_name) profile.full_name = full_name;
+      if (avatar_url) profile.avatar_url = avatar_url;
+      profile.updated_at = new Date().toISOString();
+      return profile;
+    }
+
+    if (normalized) {
+      const existingEmail = localStore.profiles.find((p) => p.email.toLowerCase() === normalized);
+      if (existingEmail) {
+        return this.syncProfileId(existingEmail.id, id, { full_name, avatar_url });
+      }
+    }
+
+    const newProfile = {
+      id,
+      full_name: full_name || (normalized ? normalized.split('@')[0] : 'User'),
+      email: normalized,
+      avatar_url: avatar_url || null,
+      password_hash: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
     localStore.profiles.push(newProfile);
     return newProfile;
   },

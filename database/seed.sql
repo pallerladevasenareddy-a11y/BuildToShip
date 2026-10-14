@@ -4,12 +4,13 @@
 
 -- 1. Insert Demo Profile (Password: DemoPass123!)
 -- Hash generated with bcryptjs rounds=10: $2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
-INSERT INTO profiles (id, full_name, email, password_hash, created_at, updated_at)
+INSERT INTO profiles (id, full_name, email, password_hash, avatar_url, created_at, updated_at)
 VALUES (
     'a0000000-0000-0000-0000-000000000001',
     'Arjun Mehta',
     'demo@docusense.ai',
     '$2a$10$wN1k6bE8eNqKqZfM2zQ8he9rN0n4yQd45K5vQf5m7kP5z2r5oG7m',
+    NULL,
     NOW(),
     NOW()
 ) ON CONFLICT (id) DO NOTHING;

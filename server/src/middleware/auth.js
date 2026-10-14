@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+import { env, isLiveSupabaseAvailable } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 import { db } from '../services/db.service.js';
 
 export async function requireAuth(req, res, next) {
@@ -19,6 +20,37 @@ export async function requireAuth(req, res, next) {
       });
     }
 
+    // 1. Verify with Supabase Auth if Supabase is configured
+    if (isLiveSupabaseAvailable && supabase) {
+      try {
+        const { data: sbData, error: sbError } = await supabase.auth.getUser(token);
+        if (!sbError && sbData?.user) {
+          const sbUser = sbData.user;
+          const meta = sbUser.user_metadata || {};
+          const profile = await db.upsertProfileFromAuthUser({
+            id: sbUser.id,
+            email: sbUser.email || '',
+            full_name: meta.full_name || meta.name || (sbUser.email ? sbUser.email.split('@')[0] : 'User'),
+            avatar_url: meta.avatar_url || meta.picture || null,
+          });
+
+          req.user = {
+            id: profile.id,
+            fullName: profile.full_name,
+            email: profile.email,
+            avatarUrl: profile.avatar_url || null,
+            authProvider: sbUser.app_metadata?.provider || 'google',
+          };
+
+          return next();
+        }
+      } catch (sbErr) {
+        // If Supabase call failed, log and attempt local verification fallback below
+        console.warn('[DocuSense Auth] Supabase getUser check note:', sbErr.message);
+      }
+    }
+
+    // 2. Legacy / Local / Test JWT verification fallback
     let decoded;
     try {
       decoded = jwt.verify(token, env.JWT_SECRET);
@@ -41,6 +73,8 @@ export async function requireAuth(req, res, next) {
       id: user.id,
       fullName: user.full_name,
       email: user.email,
+      avatarUrl: user.avatar_url || null,
+      authProvider: 'local',
     };
 
     next();
@@ -49,3 +83,4 @@ export async function requireAuth(req, res, next) {
     res.status(500).json({ success: false, error: 'Internal authentication error' });
   }
 }
+

@@ -252,10 +252,24 @@ To enable live AI extraction:
 
 ---
 
-## 18. Deployment Instructions
-- **Frontend**: Deploy `client` to Vercel or Netlify (`npm run build`, publish directory `dist`).
-- **Backend**: Deploy `server` to Render, Railway, or Fly.io (Environment variables: `PORT`, `FRONTEND_URL`, `JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`).
-- **Database & Storage**: Managed Supabase PostgreSQL instance.
+## 18. Google Sign-In & Supabase Authentication
+DocuSense AI supports official Google OAuth 2.0 through Supabase Auth:
+1. **Google Cloud Console**:
+   - Create an OAuth 2.0 Web Client ID.
+   - Set Authorized Redirect URI to: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+2. **Supabase Dashboard**:
+   - Under Authentication > Providers > Google, toggle ON and input your Google Client ID & Secret.
+   - Under Authentication > URL Configuration, add permitted redirect URLs (`http://localhost:5173/auth/callback` and `https://<your-vercel-domain>.vercel.app/auth/callback`).
+3. **Environment Variables**:
+   - **Client (`client/.env`)**: `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+   - **Server (`server/.env`)**: `PORT`, `FRONTEND_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `GEMINI_API_KEY`.
+
+---
+
+## 19. Deployment Instructions
+- **Frontend**: Deploy `client` to Vercel (`npm run build`, publish directory `dist`, configure `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+- **Backend**: Deploy `server` to Render, Railway, or Fly.io (Environment variables: `PORT`, `FRONTEND_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `GEMINI_API_KEY`).
+- **Database & Storage**: Managed Supabase PostgreSQL instance with Row-Level Security and private `invoice-documents` storage bucket.
 
 ---
 
